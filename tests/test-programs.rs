@@ -97,22 +97,47 @@ fn tcp_echo_server() -> Result<()> {
         }
     }
 
+    const MESSAGE: &[u8] = b"hello, echoserver!\n";
+
+    println!("Testing sequential TcpStream connections");
+
+    let n = 2;
+    for i in 0..n {
+        let mut tcpstream =
+            TcpStream::connect("127.0.0.1:8080").context("connect to wasm echo server")?;
+        println!("[TCP_STREAM-{}] connected to wasm echo server", i);
+
+        tcpstream.write_all(MESSAGE).context("write to socket")?;
+        println!("[TCP_STREAM-{}] wrote to echo server", i);
+
+        let mut readback = Vec::new();
+        tcpstream
+            .read_to_end(&mut readback)
+            .context("read from socket")?;
+
+        println!("[TCP_STREAM-{}] read from wasm server",i);
+        assert_eq!(MESSAGE, readback);
+    }
+
+    println!("Testing multiple messages on a single TcpStream");
+
     let mut tcpstream =
         TcpStream::connect("127.0.0.1:8080").context("connect to wasm echo server")?;
     println!("connected to wasm echo server");
 
-    const MESSAGE: &[u8] = b"hello, echoserver!\n";
+    let n = 2;
+    for _ in 0..n {
+        tcpstream.write_all(MESSAGE).context("write to socket")?;
+        println!("wrote to echo server");
 
-    tcpstream.write_all(MESSAGE).context("write to socket")?;
-    println!("wrote to echo server");
+        let mut readback = Vec::new();
+        tcpstream
+            .read_to_end(&mut readback)
+            .context("read from socket")?;
 
-    let mut readback = Vec::new();
-    tcpstream
-        .read_to_end(&mut readback)
-        .context("read from socket")?;
-
-    println!("read from wasm server");
-    assert_eq!(MESSAGE, readback);
+        println!("read from wasm server");
+        assert_eq!(MESSAGE, readback);
+    }
 
     if wasmtime_thread.is_finished() {
         wasmtime_thread.join().expect("wasmtime panicked")?;
