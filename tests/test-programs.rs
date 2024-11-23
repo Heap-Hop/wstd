@@ -115,7 +115,7 @@ fn tcp_echo_server() -> Result<()> {
             .read_to_end(&mut readback)
             .context("read from socket")?;
 
-        println!("[TCP_STREAM-{}] read from wasm server",i);
+        println!("[TCP_STREAM-{}] read from wasm server", i);
         assert_eq!(MESSAGE, readback);
     }
 
@@ -130,10 +130,9 @@ fn tcp_echo_server() -> Result<()> {
         tcpstream.write_all(MESSAGE).context("write to socket")?;
         println!("wrote to echo server");
 
-        let mut readback = Vec::new();
-        tcpstream
-            .read_to_end(&mut readback)
-            .context("read from socket")?;
+        let mut buf = [0; 1024];
+        let n = tcpstream.read(&mut buf).context("read from socket")?;
+        let readback = &buf[..n];
 
         println!("read from wasm server");
         assert_eq!(MESSAGE, readback);
